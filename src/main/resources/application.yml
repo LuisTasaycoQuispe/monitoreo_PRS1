@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: monitoreo
+  r2dbc:
+    url: r2dbc:pool:postgresql://postgres.syhmhrakamhmfnesdfjo:vallegrande2024@aws-0-us-west-1.pooler.supabase.com:5432/postgres
+server:
+  port: 8085
