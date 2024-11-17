@@ -1,7 +1,13 @@
 package pe.edu.vallegrande.monitoreo.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import pe.edu.vallegrande.monitoreo.dto.PersonaUpdateDTO;
+import pe.edu.vallegrande.monitoreo.dto.PersonaWithDetailsDTO;
+import pe.edu.vallegrande.monitoreo.model.Education;
+import pe.edu.vallegrande.monitoreo.model.Health;
 import pe.edu.vallegrande.monitoreo.model.Persona;
+import pe.edu.vallegrande.monitoreo.repository.EducationRepository;
+import pe.edu.vallegrande.monitoreo.repository.HealthRepository;
 import pe.edu.vallegrande.monitoreo.repository.PersonaRepository;
 import pe.edu.vallegrande.monitoreo.service.PersonaService;
 
@@ -17,12 +23,34 @@ public class PersonaServiceImpl implements PersonaService {
     @Autowired
     PersonaRepository personaRepository;
 
+    @Autowired
+    private EducationRepository educationRepository;
+
+    @Autowired
+    private HealthRepository healthRepository;
+
     @Override
-    public Flux<Persona> saveAllStudents(Flux<Persona> persona) {
-        log.info("Request to save batch of students");
-        return personaRepository.saveAll(persona)
-                .doOnComplete(() -> log.info("Successfully saved all students"))
-                .doOnError(error -> log.error("Error saving batch of students", error));
+    public Flux<Persona> saveAllStudents(Flux<PersonaWithDetailsDTO> personaWithDetailsDTO) {
+        log.info("Request to save batch of students with education and health");
+
+        return personaWithDetailsDTO.flatMap(dto -> {
+            Persona persona = dto.getPersona();
+            Education education = dto.getEducation();
+            Health health = dto.getHealth();
+
+          
+            return healthRepository.save(health)
+                    .flatMap(savedHealth -> {
+                        persona.setHealthIdHealth(savedHealth.getIdHealth()); 
+                        return educationRepository.save(education)
+                                .flatMap(savedEducation -> {
+                                    persona.setEducationIdEducation(savedEducation.getIdEducation()); 
+                                    return personaRepository.save(persona);
+                                });
+                    });
+        })
+                .doOnComplete(() -> log.info("Successfully saved all students with education and health"))
+                .doOnError(error -> log.error("Error saving batch of students with education and health", error));
     }
 
     @Override
@@ -66,20 +94,40 @@ public class PersonaServiceImpl implements PersonaService {
     }
 
     @Override
-    public Mono<Persona> updatePersona(Integer id, Persona updatedPersona) {
+    public Mono<Persona> updatePersona(Integer id, PersonaUpdateDTO updateDTO) {
         return personaRepository.findById(id)
-                .flatMap(existingPersona -> {
-                    existingPersona.setName(updatedPersona.getName());
-                    existingPersona.setSurname(updatedPersona.getSurname());
-                    existingPersona.setTypeDocument(updatedPersona.getTypeDocument());
-                    existingPersona.setDocumentNumber(updatedPersona.getDocumentNumber());
-                    existingPersona.setTypeKinship(updatedPersona.getTypeKinship());
-                    existingPersona.setEducationIdEducation(updatedPersona.getEducationIdEducation());
-                    existingPersona.setHealthIdHealth(updatedPersona.getHealthIdHealth());
-                    existingPersona.setFamiliaId(updatedPersona.getFamiliaId());
+                .flatMap(persona -> {
+                    persona.setName(updateDTO.getPersona().getName());
+                    persona.setSurname(updateDTO.getPersona().getSurname());
+                    persona.setTypeDocument(updateDTO.getPersona().getTypeDocument());
+                    persona.setDocumentNumber(updateDTO.getPersona().getDocumentNumber());
+                    persona.setTypeKinship(updateDTO.getPersona().getTypeKinship());
+                    persona.setFamiliaId(updateDTO.getPersona().getFamiliaId());
 
-                    return personaRepository.save(existingPersona);
+                    persona.setEducationIdEducation(updateDTO.getEducation().getIdEducation());
+                    persona.setHealthIdHealth(updateDTO.getHealth().getIdHealth());
+
+                    return personaRepository.save(persona);
                 })
-                .switchIfEmpty(Mono.error(new RuntimeException("Persona no encontrada con ID: " + id)));
+                .switchIfEmpty(Mono.empty()); 
+    }
+
+    @Override
+    public Mono<Persona> registerPersona(PersonaWithDetailsDTO personaWithDetailsDTO) {
+        Persona persona = personaWithDetailsDTO.getPersona();
+        Education education = personaWithDetailsDTO.getEducation();
+        Health health = personaWithDetailsDTO.getHealth();
+
+        return healthRepository.save(health)
+                .flatMap(savedHealth -> {
+                    persona.setHealthIdHealth(savedHealth.getIdHealth());
+
+                    return educationRepository.save(education)
+                            .flatMap(savedEducation -> {
+                                persona.setEducationIdEducation(savedEducation.getIdEducation());
+
+                                return personaRepository.save(persona);
+                            });
+                });
     }
 }

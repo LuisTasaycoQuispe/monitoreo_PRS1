@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -15,18 +16,32 @@ import lombok.Data;
 public class Persona {
 
     @Id
+    @Column("id_person")
     private Integer idPerson;
 
+    @Column("name")
     private String name;
+
+    @Column("surname")
     private String surname;
+
+    @Column("type_document")
     private String typeDocument;
+
+    @Column("document_number")
     private String documentNumber;
-   
-    @Column(value = "type_kinship")
+    
+    @Column("type_kinship")
     private String typeKinship;
+
+    @Column("education_id_education")
     private Integer educationIdEducation;
-    @Column(value = "health_id_headlth")
+
+    @Column("health_id_headlth")
     private Integer healthIdHealth;
-    @Column(value = "family_id")
+
+    @Column("family_id")
     private Integer familiaId;
+
 }
+

@@ -1,11 +1,14 @@
 package pe.edu.vallegrande.monitoreo.service;
 
+import pe.edu.vallegrande.monitoreo.dto.PersonaUpdateDTO;
+import pe.edu.vallegrande.monitoreo.dto.PersonaWithDetailsDTO;
 import pe.edu.vallegrande.monitoreo.model.Persona;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface PersonaService {
-    Flux<Persona> saveAllStudents(Flux<Persona> personas);
+
+    public Flux<Persona> saveAllStudents(Flux<PersonaWithDetailsDTO> personaWithDetailsDTO);
 
     Mono<Persona> saveSingleStudent(Persona persona);
 
@@ -17,5 +20,7 @@ public interface PersonaService {
 
     Mono<Void> deleteById(Integer id);
 
-    Mono<Persona> updatePersona(Integer id, Persona updatedPersona);
+    Mono<Persona> updatePersona(Integer id, PersonaUpdateDTO updateDTO);
+    Mono<Persona> registerPersona(PersonaWithDetailsDTO personaWithDetailsDTO);
+
 }

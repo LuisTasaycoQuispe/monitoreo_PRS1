@@ -1,11 +1,13 @@
 package pe.edu.vallegrande.monitoreo.rest;
 
-
 import lombok.extern.slf4j.Slf4j;
+import pe.edu.vallegrande.monitoreo.dto.PersonaUpdateDTO;
+import pe.edu.vallegrande.monitoreo.dto.PersonaWithDetailsDTO;
 import pe.edu.vallegrande.monitoreo.model.Persona;
 import pe.edu.vallegrande.monitoreo.service.impl.PersonaServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -26,12 +28,12 @@ public class PersonaRest {
                 .doOnError(error -> log.error("Error al guardar persona: {}", persona, error));
     }
 
-    @PostMapping("/batch")
-    public Flux<Persona> saveAllStudents(@RequestBody Flux<Persona> persona) {
-        log.info("Request to save batch of students");
-        return personaService.saveAllStudents(persona)
-                .doOnComplete(() -> log.info("Successfully saved all students"))
-                .doOnError(error -> log.error("Error saving batch of students", error));
+    @PostMapping("/registrar_varios")
+    public Flux<Persona> saveAllStudents(@RequestBody Flux<PersonaWithDetailsDTO> personaWithDetailsDTO) {
+        log.info("Request to save batch of students with education and health");
+        return personaService.saveAllStudents(personaWithDetailsDTO)
+                .doOnComplete(() -> log.info("Successfully saved all students with education and health"))
+                .doOnError(error -> log.error("Error saving batch of students with education and health", error));
     }
 
     @GetMapping("/{id}")
@@ -68,28 +70,20 @@ public class PersonaRest {
                 .doOnError(error -> log.error("Error deleting all students", error));
     }
 
+   @PutMapping("/{id}")
+    public Mono<ResponseEntity<Persona>> updatePersona(@PathVariable("id") Integer id,
+                                                       @RequestBody PersonaUpdateDTO updateDTO) {
+        return personaService.updatePersona(id, updateDTO)
+                .map(persona -> ResponseEntity.ok(persona)) // Si se actualiza, devuelve la persona
+                .defaultIfEmpty(ResponseEntity.notFound().build()); // Si no se encuentra la persona, responde con 404
+    }
+    
 
-
-    @PutMapping("/{id}")
-    public Mono<Persona> updateStudent(@PathVariable Integer id, @RequestBody Persona updatedPersona) {
-        log.info("Request to update student with ID: {}", id);
-        
-        return personaService.findStudentById(id)
-                .flatMap(existingPersona -> {
-                    existingPersona.setName(updatedPersona.getName());
-                    existingPersona.setSurname(updatedPersona.getSurname());
-                    existingPersona.setTypeDocument(updatedPersona.getTypeDocument());
-                    existingPersona.setDocumentNumber(updatedPersona.getDocumentNumber());
-                    existingPersona.setTypeKinship(updatedPersona.getTypeKinship());
-                    existingPersona.setEducationIdEducation(updatedPersona.getEducationIdEducation());
-                    existingPersona.setHealthIdHealth(updatedPersona.getHealthIdHealth());
-                    existingPersona.setFamiliaId(updatedPersona.getFamiliaId());
-                    
-                    // Guardar la persona actualizada
-                    return personaService.saveSingleStudent(existingPersona)
-                            .doOnSuccess(savedPersona -> log.info("Persona con ID: {} actualizada: {}", id, savedPersona))
-                            .doOnError(error -> log.error("Error actualizando persona con ID: {}", id, error));
-                })
-                .switchIfEmpty(Mono.error(new RuntimeException("Persona no encontrada con ID: " + id)));
+    @PostMapping("/registrar")
+    public Mono<ResponseEntity<String>> registerPersona(@RequestBody PersonaWithDetailsDTO personaWithDetailsDTO) {
+        return personaService.registerPersona(personaWithDetailsDTO)
+                .map(persona -> ResponseEntity.ok("Persona registrada con éxito."))
+                .onErrorResume(e -> Mono
+                        .just(ResponseEntity.badRequest().body("Error al registrar la persona: " + e.getMessage())));
     }
 }
